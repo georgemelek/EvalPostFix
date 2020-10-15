@@ -1,0 +1,173 @@
+#include <iostream>
+#include <stdexcept>
+#include <string>
+#include <sstream>
+using namespace std;
+
+class PrecondViolatedExcept: public logic_error {
+    public:
+        PrecondViolatedExcept(const string& message = "");
+};
+
+template<class T>
+class dynArrStack {
+    private:
+        static const int deCap = 30;
+        int top;
+        T* items; // array in the dynamic memory storage
+    public:
+        dynArrStack() : top(-1) { items = new T[deCap]; }
+        dynArrStack(const dynArrStack<T>& rhs);
+        ~dynArrStack() { delete [] items; top = -1; }
+        dynArrStack<T>& operator=( const dynArrStack<T>& rhs ){ //overloaded assignment operator
+            top = rhs.top;
+            delete[] items;
+            items = new T[deCap];
+            for(int i=0; i <= top; ++i) {
+                items[i] = rhs.items[i];
+            }
+            return *this;
+        }
+        bool isEmpty() const;
+        bool push(const T& nEntry);
+        bool pop();
+        T peek() const throw(PrecondViolatedExcept);
+        T peek2() const throw(PrecondViolatedExcept);
+        int size() const { return top + 1; }
+        T evalPostFix(string expression);
+};
+
+int main()
+{
+    dynArrStack<double> test;
+    string str = "25.4 3.0 10.2 * + 9.5 - q";
+    //int pos = str.find(' ');
+    //string sub = str.substr(0,str.find(' '));
+    //stringstream geek(sub); 
+  
+    //float x = 0; 
+    //geek >> x; 
+    //cout << pos;
+    //cout << "Value of x : " << x*2; 
+
+    test.evalPostFix(str);
+    //cout << test.peek();
+    return 0;
+}
+
+
+PrecondViolatedExcept::PrecondViolatedExcept(const string& message): logic_error("Precondition Violated Exception: " + message) {} // end constructor
+
+//Copy Constructor
+template<class T>
+dynArrStack<T>::dynArrStack(const dynArrStack<T>& rhs){
+    top = rhs.top;
+    items = new T[deCap];
+    for(int i=0; i <= top; i++) {
+        items[i] = rhs.items[i];
+    }
+}
+
+//Checks if there are no elements
+template<class T>
+bool dynArrStack<T>::isEmpty() const{
+    return top < 0;
+}
+
+//Adds an element to the top of the stack
+template<class T>
+bool dynArrStack<T>::push(const T& nEntry){
+    bool result = false;
+    if(top<deCap-1){
+        top++;
+        items[top] = nEntry;
+        result = true;
+    }
+    return result;
+}
+
+//Pops out an element from the top
+template<class T>
+bool dynArrStack<T>::pop(){
+    bool result = false;
+    if (!isEmpty()){
+        top--;
+        result = true;
+    }
+    return result;
+}
+
+//Only looks at the the top element and returns its value
+template<class T>
+T dynArrStack<T>::peek() const throw(PrecondViolatedExcept){
+    if(isEmpty()){
+        throw PrecondViolatedExcept("peek() called with empty stack");
+    }
+    return items[top];
+}
+
+//Looks at the second-to-top element and returns its value
+template<class T>
+T dynArrStack<T>::peek2() const throw(PrecondViolatedExcept){
+    if(isEmpty()){
+        throw PrecondViolatedExcept("peek() called with empty stack");
+    }
+    return items[top-1];
+}
+
+template<class T>
+T dynArrStack<T>::evalPostFix(string expression){
+    for(int i=0;i<expression.length();i++){
+        int firstVal = 0;
+        bool validNum = true;
+        while(expression[i] != ' '){
+            string sub = expression.substr(firstVal,i);
+            for(int i=0;i<sub.length();i++){
+                
+                if(!isdigit(sub[i]) || sub[i]!='.'){
+                    validNum = false;
+                    break;
+                }
+            }
+            if(validNum){
+                stringstream str2Int(sub); 
+                float x = 0; 
+                str2Int >> x; 
+                this->push(x);
+            }
+            else if(expression[i] == '+'){
+                double topNum = this->peek();
+                double bottomNum = this->peek2();
+                this->pop();
+                this->pop();
+                this->push(topNum+bottomNum);
+            }
+            else if(expression[i] == '*'){
+                double topNum = this->peek();
+                double bottomNum = this->peek2();
+                this->pop();
+                this->pop();
+                this->push(topNum*bottomNum);
+            }
+            else if(expression[i] == '-'){
+                double topNum = this->peek();
+                double bottomNum = this->peek2();
+                this->pop();
+                this->pop();
+                this->push(bottomNum-topNum);
+            }
+            else if(expression[i] == '/'){
+                double topNum = this->peek();
+                double bottomNum = this->peek2();
+                this->pop();
+                this->pop();
+                this->push(bottomNum/topNum);
+            }
+            else if(expression[i] == 'q'){
+                break;
+            }
+        }
+        firstVal=i;
+    }
+    cout << this->peek();
+}
